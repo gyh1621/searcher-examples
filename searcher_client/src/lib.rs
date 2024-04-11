@@ -175,6 +175,7 @@ pub async fn send_bundle_with_confirmation(
                 "Searcher service did not provide bundle status in time".into(),
             )));
         }
+        info!("Waiting for transactions to land, bundle {}...", uuid);
         sleep(Duration::from_secs(1)).await;
     }
 
