@@ -102,8 +102,9 @@ pub async fn send_bundle_with_confirmation(
     let uuid = result.into_inner().uuid;
     info!("Bundle sent. UUID: {:?}", uuid);
 
-    info!("Waiting for 5 seconds to hear results...");
-    let mut time_left = 5000;
+    let start_time = Instant::now();
+    info!("Waiting for {} seconds to hear results...", confirmation_timeout.as_secs());
+    let mut time_left = confirmation_timeout.as_millis() as u64;
     while let Ok(Some(Ok(results))) = timeout(
         Duration::from_millis(time_left),
         bundle_results_subscription.next(),
@@ -156,7 +157,7 @@ pub async fn send_bundle_with_confirmation(
         time_left -= instant.elapsed().as_millis() as u64;
     }
 
-    let confirmation_deadline = Instant::now() + confirmation_timeout;
+    let confirmation_deadline = start_time + confirmation_timeout;
     loop {
         let futs: Vec<_> = bundle_signatures
             .iter()
