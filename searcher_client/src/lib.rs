@@ -120,7 +120,9 @@ pub async fn send_bundle_with_confirmation(
             Some(BundleResultType::Accepted(Accepted {
                 slot: _s,
                 validator_identity: _v,
-            })) => {}
+            })) => {
+                break;
+            }
             Some(BundleResultType::Rejected(rejected)) => {
                 match rejected.reason {
                     Some(Reason::WinningBatchBidRejected(WinningBatchBidRejected {
@@ -165,33 +167,33 @@ pub async fn send_bundle_with_confirmation(
         return Err(Box::new(BundleRejectionError::SubmitTimeout));
     }
 
-    let confirmation_deadline = Instant::now() + confirmation_timeout;
-    loop {
-        let futs: Vec<_> = bundle_signatures
-            .iter()
-            .map(|sig| {
-                rpc_client.get_signature_status_with_commitment(sig, CommitmentConfig::processed())
-            })
-            .collect();
-        let results = futures_util::future::join_all(futs).await;
-        if results.iter().all(|r| matches!(r, Ok(Some(Ok(()))))) {
-            break;
-        }
-
-        if Instant::now() > confirmation_deadline {
-            warn!("Transactions in bundle did not land");
-            return Err(Box::new(BundleRejectionError::InternalError(
-                "Searcher service did not provide bundle status in time".into(),
-            )));
-        }
-        info!("Waiting for transactions to land, bundle {}...", uuid);
-        sleep(Duration::from_secs(10)).await;
-    }
-
-    info!("Bundle landed successfully");
-    for sig in bundle_signatures.iter() {
-        info!("https://solscan.io/tx/{}", sig);
-    }
+    // let confirmation_deadline = Instant::now() + confirmation_timeout;
+    // loop {
+    //     let futs: Vec<_> = bundle_signatures
+    //         .iter()
+    //         .map(|sig| {
+    //             rpc_client.get_signature_status_with_commitment(sig, CommitmentConfig::processed())
+    //         })
+    //         .collect();
+    //     let results = futures_util::future::join_all(futs).await;
+    //     if results.iter().all(|r| matches!(r, Ok(Some(Ok(()))))) {
+    //         break;
+    //     }
+    // 
+    //     if Instant::now() > confirmation_deadline {
+    //         warn!("Transactions in bundle did not land");
+    //         return Err(Box::new(BundleRejectionError::InternalError(
+    //             "Searcher service did not provide bundle status in time".into(),
+    //         )));
+    //     }
+    //     info!("Waiting for transactions to land, bundle {}...", uuid);
+    //     sleep(Duration::from_secs(10)).await;
+    // }
+    // 
+    // info!("Bundle landed successfully");
+    // for sig in bundle_signatures.iter() {
+    //     info!("https://solscan.io/tx/{}", sig);
+    // }
     Ok(())
 }
 
