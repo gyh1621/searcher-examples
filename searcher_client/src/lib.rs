@@ -91,6 +91,7 @@ pub async fn send_bundle_with_confirmation(
     rpc_client: &RpcClient,
     searcher_client: &mut SearcherServiceClient<InterceptedService<Channel, ClientInterceptor>>,
     bundle_results_subscription: &mut Streaming<BundleResult>,
+    confirmation_timeout: Duration,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let bundle_signatures: Vec<Signature> =
         transactions.iter().map(|tx| tx.signatures[0]).collect();
@@ -155,7 +156,7 @@ pub async fn send_bundle_with_confirmation(
         time_left -= instant.elapsed().as_millis() as u64;
     }
 
-    let mut attempts = 0;
+    let confirmation_deadline = Instant::now() + confirmation_timeout;
     loop {
         let futs: Vec<_> = bundle_signatures
             .iter()
@@ -168,15 +169,14 @@ pub async fn send_bundle_with_confirmation(
             break;
         }
 
-        attempts += 1;
-        if attempts >= 10 {
+        if Instant::now() > confirmation_deadline {
             warn!("Transactions in bundle did not land");
             return Err(Box::new(BundleRejectionError::InternalError(
                 "Searcher service did not provide bundle status in time".into(),
             )));
         }
         info!("Waiting for transactions to land, bundle {}...", uuid);
-        sleep(Duration::from_secs(1)).await;
+        sleep(Duration::from_secs(10)).await;
     }
 
     info!("Bundle landed successfully");
