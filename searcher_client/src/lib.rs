@@ -54,6 +54,7 @@ pub enum BundleRejectionError {
     SimulationFailure(String, Option<String>),
     #[error("internal error {0}")]
     InternalError(String),
+    SubmitTimeout,
 }
 
 pub type BlockEngineConnectionResult<T> = Result<T, BlockEngineConnectionError>;
@@ -104,6 +105,7 @@ pub async fn send_bundle_with_confirmation(
 
     info!("Waiting for 5 seconds to hear results...");
     let mut time_left = 5000;
+    let mut has_result = false;
     while let Ok(Some(Ok(results))) = timeout(
         Duration::from_millis(time_left),
         bundle_results_subscription.next(),
@@ -112,6 +114,7 @@ pub async fn send_bundle_with_confirmation(
     {
         let instant = Instant::now();
         info!("bundle results: {:?}", results);
+        has_result = true;
         match results.result {
             Some(BundleResultType::Accepted(Accepted {
                 slot: _s,
@@ -154,6 +157,11 @@ pub async fn send_bundle_with_confirmation(
             _ => {}
         }
         time_left -= instant.elapsed().as_millis() as u64;
+    }
+
+    if !has_result {
+        warn!("Bundle results not received in time");
+        return Err(Box::new(BundleRejectionError::SubmitTimeout));
     }
 
     let confirmation_deadline = Instant::now() + confirmation_timeout;
