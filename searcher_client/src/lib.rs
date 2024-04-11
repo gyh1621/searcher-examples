@@ -24,7 +24,7 @@ use solana_sdk::{
     transaction::VersionedTransaction,
 };
 use thiserror::Error;
-use tokio::time::timeout;
+use tokio::time::{sleep, timeout};
 use tonic::{
     codegen::InterceptedService,
     transport,
@@ -155,19 +155,29 @@ pub async fn send_bundle_with_confirmation(
         time_left -= instant.elapsed().as_millis() as u64;
     }
 
-    let futs: Vec<_> = bundle_signatures
-        .iter()
-        .map(|sig| {
-            rpc_client.get_signature_status_with_commitment(sig, CommitmentConfig::processed())
-        })
-        .collect();
-    let results = futures_util::future::join_all(futs).await;
-    if !results.iter().all(|r| matches!(r, Ok(Some(Ok(()))))) {
-        warn!("Transactions in bundle did not land");
-        return Err(Box::new(BundleRejectionError::InternalError(
-            "Searcher service did not provide bundle status in time".into(),
-        )));
+    let mut attempts = 0;
+    loop {
+        let futs: Vec<_> = bundle_signatures
+            .iter()
+            .map(|sig| {
+                rpc_client.get_signature_status_with_commitment(sig, CommitmentConfig::processed())
+            })
+            .collect();
+        let results = futures_util::future::join_all(futs).await;
+        if results.iter().all(|r| matches!(r, Ok(Some(Ok(()))))) {
+            break;
+        }
+
+        attempts += 1;
+        if attempts >= 10 {
+            warn!("Transactions in bundle did not land");
+            return Err(Box::new(BundleRejectionError::InternalError(
+                "Searcher service did not provide bundle status in time".into(),
+            )));
+        }
+        sleep(Duration::from_secs(1)).await;
     }
+
     info!("Bundle landed successfully");
     for sig in bundle_signatures.iter() {
         info!("https://solscan.io/tx/{}", sig);
