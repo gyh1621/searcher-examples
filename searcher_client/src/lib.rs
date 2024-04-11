@@ -54,6 +54,7 @@ pub enum BundleRejectionError {
     SimulationFailure(String, Option<String>),
     #[error("internal error {0}")]
     InternalError(String),
+    #[error("submit timeout")]
     SubmitTimeout,
 }
 
