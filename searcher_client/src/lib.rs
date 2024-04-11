@@ -169,7 +169,7 @@ pub async fn send_bundle_with_confirmation(
         }
 
         attempts += 1;
-        if attempts >= 10 {
+        if attempts >= 20 {
             warn!("Transactions in bundle did not land");
             return Err(Box::new(BundleRejectionError::InternalError(
                 "Searcher service did not provide bundle status in time".into(),
