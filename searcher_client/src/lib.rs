@@ -94,7 +94,7 @@ pub async fn send_bundle_with_confirmation(
     searcher_client: &mut SearcherServiceClient<InterceptedService<Channel, ClientInterceptor>>,
     bundle_results_subscription: &mut Streaming<BundleResult>,
     confirmation_timeout: Duration,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let bundle_signatures: Vec<Signature> =
         transactions.iter().map(|tx| tx.signatures[0]).collect();
 
