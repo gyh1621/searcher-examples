@@ -104,8 +104,8 @@ pub async fn send_bundle_with_confirmation(
     let uuid = result.into_inner().uuid;
     info!("Bundle sent. UUID: {:?}", uuid);
 
-    info!("Waiting for 20 seconds to hear results...");
-    let mut time_left = 20000;
+    info!("Waiting for 10 seconds to hear results...");
+    let mut time_left = 10000;
     let mut has_result = false;
     while let Ok(Some(Ok(results))) = timeout(
         Duration::from_millis(time_left),
@@ -179,7 +179,7 @@ pub async fn send_bundle_with_confirmation(
     //     if results.iter().all(|r| matches!(r, Ok(Some(Ok(()))))) {
     //         break;
     //     }
-    // 
+    //
     //     if Instant::now() > confirmation_deadline {
     //         warn!("Transactions in bundle did not land");
     //         return Err(Box::new(BundleRejectionError::InternalError(
@@ -189,7 +189,7 @@ pub async fn send_bundle_with_confirmation(
     //     info!("Waiting for transactions to land, bundle {}...", uuid);
     //     sleep(Duration::from_secs(10)).await;
     // }
-    // 
+    //
     // info!("Bundle landed successfully");
     // for sig in bundle_signatures.iter() {
     //     info!("https://solscan.io/tx/{}", sig);
