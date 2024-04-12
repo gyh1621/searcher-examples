@@ -104,8 +104,8 @@ pub async fn send_bundle_with_confirmation(
     let uuid = result.into_inner().uuid;
     info!("Bundle sent. UUID: {:?}", uuid);
 
-    info!("Waiting for 10 seconds to hear results...");
-    let mut time_left = 10000;
+    info!("Waiting for 5 seconds to hear results...");
+    let mut time_left = 5000;
     let mut has_result = false;
     while let Ok(Some(Ok(results))) = timeout(
         Duration::from_millis(time_left),
